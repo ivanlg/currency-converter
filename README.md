@@ -6,7 +6,7 @@ Tiny currency converter using data from https://www.exchangerate-api.com
 
 ```sh
 npm install
-npm API_KEY=[YOUR API FROM exchangerate-api.com] node index.js 
+npm API_KEY=[YOUR API_KEY FROM exchangerate-api.com] node index.js 
 ```
 
 ## Live Demo
