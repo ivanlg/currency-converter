@@ -1,0 +1,87 @@
+<div class="container mt-4">
+  <form method="GET" class="needs-validation" novalidate>
+    <div class="row mb-3">
+      <div class="col-md-2">
+        <label for="amount">Amount</label>
+        <input type="text" class="form-control" id="amount" name="amount" value="{{amount}}" required>
+      </div>
+      <div class="col-md-5">
+        <label for="amount">From</label>
+        <select class="selectpicker form-control" id="from" name="from">
+          {{#each currencies}}
+            <option
+              value="{{this.code}}"
+              data-content='<img src="/assets/img/flags/{{this.flag}}" width="30" height="30" class="d-inline-block align-top" alt="{{this.description}}"> <span> {{this.description}} <strong>{{this.code}}</strong></span>'
+              {{#if (currenciesMatch this.code from)}} selected {{/if}}>
+            </option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label for="to">To</label>
+        <select class="selectpicker form-control" id="to" name="to">
+          {{#each currencies}}
+            <option
+              value="{{this.code}}"
+              data-content='<img src="/assets/img/flags/{{this.flag}}" width="30" height="30" class="d-inline-block align-top" alt="{{this.description}}"> <span> {{this.description}} <strong>{{this.code}}</strong></span>'
+              {{#if (currenciesMatch this.code to)}} selected {{/if}}>
+            </option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit">Convert Currency</button>
+  </form>
+  {{#if (isStateSuccess state)}}
+    <div class="jumbotron mt-4">
+      <h1 class="display-4">{{formatMoney from amount}} {{from}} = {{formatMoney to convertedAmount}} {{to}}</h1>
+      <blockquote class="blockquote text-center">
+        <p class="mb-0">{{getCurrencyDescription from}} to {{getCurrencyDescription to}} Conversion</p>
+        <footer class="blockquote-footer">Data from https://www.exchangerate-api.com</cite></footer>
+      </blockquote>
+      <hr class="my-4">
+    </div>
+  {{/if}}
+  {{#if (isStateError state)}}
+    <div class="alert alert-danger mt-4" role="alert">
+      There was a problem processing your request: {{ errorDescription }}.
+    </div>
+  {{/if}}
+</div>
+<script>
+  // Example starter JavaScript for disabling form submissions if there are invalid fields
+  (function() {
+    'use strict';
+    window.addEventListener('load', function() {
+      // Fetch all the forms we want to apply custom Bootstrap validation styles to
+      var forms = document.getElementsByClassName('needs-validation');
+      // Loop over them and prevent submission
+      var validation = Array.prototype.filter.call(forms, function(form) {
+        form.addEventListener('submit', function(event) {
+          if (form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    }, false);
+  })();
+
+  $(function init() {
+    $("#from").val("{{from}}" || "{{defaultCodeFrom}}");
+    $("#to").val("{{to}}" || "{{defaultCodeTo}}");
+    $("#from").selectpicker('refresh');
+    $("#to").selectpicker('refresh');
+
+    const autoNumericOptions = {
+      digitGroupSeparator        : '.',
+      decimalCharacter           : ',',
+      decimalCharacterAlternative: '.',
+      unformatOnSubmit: true
+    };
+
+    // Initialization
+    new AutoNumeric("#amount", autoNumericOptions);
+      });
+</script>
