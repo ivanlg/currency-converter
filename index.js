@@ -3,68 +3,24 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const handlebars = require('express-handlebars');
 const path = require('path');
-const fx = require('money');
-const ExchangeRateApi = require('@ivanvr/exchangerate-api-wrapper');
-const money = require('accounting-js');
+const currencies = require('./data/currencies');
+const helpers = require('./views/helpers/helpers');
+const convertCurrency = require('./utils/utils');
+const {
+  requireAllFieldsPresent,
+  validCurrencySchema,
+  validNumberSchema,
+} = require('./schemas/schemas');
+const STATES = require('./utils/states');
 
-const exchangeRateApi = new ExchangeRateApi(process.env.API_KEY);
-
-const STATES = {
-  SUCCESS: 'success',
-  ERROR: 'error',
-  WAITING_FOR_INPUT: 'waiting_for_input',
-};
-
-const currencies = [
-  {
-    code: 'USD',
-    description: 'US Dollar',
-    flag: 'usd.svg',
-    symbol: '$',
-  },
-  {
-    code: 'ARS',
-    description: 'Argentine Peso',
-    flag: 'ars.svg',
-    symbol: '$',
-  },
-  {
-    code: 'EUR',
-    description: 'Euro',
-    flag: 'eur.svg',
-    symbol: '€',
-  },
-  {
-    code: 'CLP',
-    description: 'Chilean Peso',
-    flag: 'clp.svg',
-    symbol: '$',
-  },
-  {
-    code: 'INR',
-    description: 'Indian Rupee',
-    flag: 'inr.svg',
-    symbol: '₹',
-  },
-];
+// constants
 const defaultCodeFrom = 'USD';
 const defaultCodeTo = 'ARS';
+const defaultAmount = 1;
 
-const helpers = {
-  currenciesMatch: (currencyCode1, currencyCode2) => currencyCode1 === currencyCode2,
-  getCurrencyDescription: (code) => currencies.find((currency) => currency.code === code).description,
-  formatMoney: (code, value) => {
-    const currency = currencies.find((item) => item.code === code);
-    return money.formatMoney(value, {
-      symbol: currency.symbol,
-      precision: 2,
-      thousand: '.',
-      decimal: ',',
-    });
-  },
-  isStateWaitingForInput: (state) => state === STATES.WAITING_FOR_INPUT,
-  isStateError: (state) => state === STATES.ERROR,
-  isStateSuccess: (state) => state === STATES.SUCCESS,
+const allFieldsPresent = (data) => {
+  const { error } = requireAllFieldsPresent.validate(data);
+  return !error;
 };
 
 const app = express();
@@ -85,25 +41,50 @@ app.use(express.static('public'));
 
 app.get('/', async (req, res) => {
   const layout = 'index';
-  const { amount, from, to } = req.query;
-  let convertedAmount;
+  const from = defaultCodeFrom;
+  const to = defaultCodeTo;
+  const amount = defaultAmount;
+  const convertedAmount = 0;
+  const state = STATES.WAITING_FOR_INPUT;
+  const errorDescription = '';
+
+  const templateVars = {
+    layout,
+    from,
+    to,
+    amount,
+    convertedAmount,
+    state,
+    errorDescription,
+    currencies,
+  };
+
+  res.render('main', templateVars);
+});
+
+app.get('/convert', async (req, res) => {
+  const layout = 'index';
+  let { amount, from, to } = req.query;
+  const data = { amount, from, to };
+  let convertedAmount = 0;
   let state = STATES.WAITING_FOR_INPUT;
-  let errorDescription;
-  if (to && from && amount) {
-    const response = await exchangeRateApi.latest(from);
-    state = response.result;
-    if (state === STATES.SUCCESS) {
-      fx.rates = response.conversion_rates;
-      fx.base = response.base;
-      try {
-        convertedAmount = fx(amount).from(from).to(to);
-      } catch (error) {
-        state = STATES.ERROR;
-        errorDescription = `Invalid amount (${amount}) or currency code (${to})`;
-      }
-    } else {
-      errorDescription = response.error;
-    }
+  let errorDescription = '';
+
+  if (!allFieldsPresent(data)) {
+    res.redirect('/');
+    return;
+  }
+  // If the value is invalid, set the default value
+  amount = validNumberSchema.validate(amount).error ? defaultAmount : amount;
+  from = validCurrencySchema.validate(from).error ? defaultCodeFrom : from;
+  to = validCurrencySchema.validate(to).error ? defaultCodeTo : to;
+
+  try {
+    convertedAmount = await convertCurrency(amount, from, to);
+    state = STATES.SUCCESS;
+  } catch (error) {
+    state = STATES.ERROR;
+    errorDescription = error.message;
   }
 
   const templateVars = {
@@ -115,8 +96,6 @@ app.get('/', async (req, res) => {
     state,
     errorDescription,
     currencies,
-    defaultCodeFrom,
-    defaultCodeTo,
   };
 
   res.render('main', templateVars);

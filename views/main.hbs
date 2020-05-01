@@ -1,5 +1,5 @@
 <div class="container mt-4">
-  <form method="GET" class="needs-validation" novalidate>
+  <form method="GET" action="/convert" class="needs-validation" novalidate>
     <div class="row mb-3">
       <div class="col-md-2">
         <label for="amount">Amount</label>
@@ -69,11 +69,12 @@
   })();
 
   $(function init() {
-    $("#from").val("{{from}}" || "{{defaultCodeFrom}}");
-    $("#to").val("{{to}}" || "{{defaultCodeTo}}");
+    // Set datepicker values
+    $("#from").val("{{from}}");
+    $("#to").val("{{to}}");
     $("#from").selectpicker('refresh');
     $("#to").selectpicker('refresh');
-
+    // Set autonumeric options
     const autoNumericOptions = {
       digitGroupSeparator        : '.',
       decimalCharacter           : ',',
@@ -83,5 +84,5 @@
 
     // Initialization
     new AutoNumeric("#amount", autoNumericOptions);
-      });
+  });
 </script>
