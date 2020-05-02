@@ -1,11 +1,12 @@
 require('./config/config');
 const express = require('express');
+const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const handlebars = require('express-handlebars');
 const path = require('path');
 const currencies = require('./data/currencies');
 const helpers = require('./views/helpers/helpers');
-const convertCurrency = require('./utils/utils');
+const { convertCurrency } = require('./utils/utils');
 const {
   requireAllFieldsPresent,
   validCurrencySchema,
@@ -101,6 +102,20 @@ app.get('/convert', async (req, res) => {
   res.render('main', templateVars);
 });
 
-app.listen(process.env.PORT, () => {
-  console.log('Listening on port: ', process.env.PORT);
+mongoose.connect(
+  process.env.DBURI,
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+    useFindAndModify: false,
+  },
+);
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', async () => {
+  console.log("We're connected!");
+  app.listen(process.env.PORT, () => {
+    console.log('Listening on port: ', process.env.PORT);
+  });
 });
